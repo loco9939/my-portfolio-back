@@ -1,0 +1,13 @@
+{
+  "name": "my-portfolio-back",
+  "version": "1.0.0",
+  "main": "index.js",
+  "repository": "https://github.com/loco9939/my-portfolio-back.git",
+  "author": "loco9939 <kls9939@naver.com>",
+  "license": "MIT",
+  "dependencies": {
+    "cors": "2.8.5",
+    "express":"4.18.2",
+    "mongoose": "8.0.4"
+  }
+}
