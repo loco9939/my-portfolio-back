@@ -2,6 +2,7 @@ const express = require("express");
 const mongoose = require("mongoose");
 const bcrypt = require("bcrypt");
 const cors = require("cors");
+const dayjs = require("dayjs");
 
 require("dotenv").config(); // Load environment variables from .env file
 
@@ -21,12 +22,17 @@ const User = mongoose.model("User", { email: String, password: String });
 
 const FinancialData = mongoose.model("FinancialData", {
   user: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
-  cashWon: Number,
-  saving: Number,
-  stock: Number,
-  realEstate: Number,
-  debt: Number,
-  date: { type: Date, default: Date.now },
+  lastUpdate: String,
+  monthlyAssets: {
+    type: Map,
+    of: {
+      cashWon: Number,
+      saving: Number,
+      stock: Number,
+      realEstate: Number,
+      debt: Number,
+    },
+  },
 });
 
 app.get("/", async (req, res) => {
@@ -90,8 +96,9 @@ app.post("/signin", async (req, res) => {
   }
 });
 
+// TODO: 처음 자산 입력시 입력한 날짜의 월을
 app.post("/save-financial-data", async (req, res) => {
-  const { userId, cashWon, saving, stock, realEstate, debt } = req.body;
+  const { userId } = req.body;
 
   try {
     const user = await User.findOne({
@@ -102,21 +109,30 @@ app.post("/save-financial-data", async (req, res) => {
       return res.status(404).send("User not found");
     }
 
-    const financialData = new FinancialData({
-      user: user._id,
-      cashWon,
-      saving,
-      stock,
-      realEstate,
-      debt,
-    });
+    // Loop through each month's data in the request
+    for (const key in req.body) {
+      if (key.includes("_")) {
+        const [month, year] = key.split("_");
+        const financialData = req.body[key];
 
-    await financialData.save();
+        // Save financial data for the current month
+        const financialDataEntry = new FinancialData({
+          user: user._id,
+          cashWon: financialData.cashWon,
+          saving: financialData.saving,
+          stock: financialData.stock,
+          realEstate: financialData.realEstate,
+          debt: financialData.debt,
+          date: `${year}${month.padStart(2, "0")}`, // Format: "YYYYMM"
+        });
+        await financialDataEntry.save();
+      }
+    }
 
-    res.status(201).send("Finacial data saved successfully");
+    res.status(201).send("Financial data saved successfully");
   } catch (error) {
     console.error("Error saving financial data: ", error);
-    res.status(500).send("Error saving finacial data");
+    res.status(500).send("Error saving financial data");
   }
 });
 
