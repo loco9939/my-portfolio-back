@@ -96,7 +96,10 @@ app.post("/signin", async (req, res) => {
   }
 });
 
-// TODO: 처음 자산 입력시 입력한 날짜의 월을
+/**  TODO: 자산 데이터 구조 수정하기 24.03.03 기준
+ * [] 자산 수정 시 데이터 입력 및 API
+ * [] 자산 첫 등록시 데이터 입력
+ */
 app.post("/save-financial-data", async (req, res) => {
   const { userId } = req.body;
 
