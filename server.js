@@ -72,22 +72,17 @@ app.post("/signin", async (req, res) => {
     }
 
     // Fetch financial data for the user
-    const financialData = await FinancialData.findOne({ user: user._id });
+    const financialData = await FinancialData.findOne({
+      user: user._id,
+    });
 
     if (!financialData) {
       return res.status(200).json({});
     }
 
-    // Include financial data in the response
     const responseData = {
-      financialData: {
-        cashWon: financialData.cashWon,
-        saving: financialData.saving,
-        stock: financialData.stock,
-        realEstate: financialData.realEstate,
-        debt: financialData.debt,
-        date: financialData.date,
-      },
+      monthlyAssets: financialData.monthlyAssets,
+      lastUpdate: financialData.lastUpdate,
     };
 
     res.status(200).json(responseData);
@@ -97,11 +92,11 @@ app.post("/signin", async (req, res) => {
 });
 
 /**  TODO: 자산 데이터 구조 수정하기 24.03.03 기준
- * [] 자산 수정 시 데이터 입력 및 API
- * [] 자산 첫 등록시 데이터 입력
+ * [X] 자산 첫 등록시 데이터 입력
  */
+// ...
 app.post("/save-financial-data", async (req, res) => {
-  const { userId } = req.body;
+  const { userId, lastUpdate, monthlyAssets } = req.body;
 
   try {
     const user = await User.findOne({
@@ -113,29 +108,74 @@ app.post("/save-financial-data", async (req, res) => {
     }
 
     // Loop through each month's data in the request
-    for (const key in req.body) {
-      if (key.includes("_")) {
-        const [month, year] = key.split("_");
-        const financialData = req.body[key];
+    for (const key in monthlyAssets) {
+      const financialData = monthlyAssets[key];
 
-        // Save financial data for the current month
-        const financialDataEntry = new FinancialData({
-          user: user._id,
-          cashWon: financialData.cashWon,
-          saving: financialData.saving,
-          stock: financialData.stock,
-          realEstate: financialData.realEstate,
-          debt: financialData.debt,
-          date: `${year}${month.padStart(2, "0")}`, // Format: "YYYYMM"
-        });
-        await financialDataEntry.save();
-      }
+      // Save financial data for the current month
+      const financialDataEntry = new FinancialData({
+        user: user._id,
+        lastUpdate,
+        monthlyAssets: {
+          [key]: {
+            cashWon: financialData.cashWon,
+            saving: financialData.saving,
+            stock: financialData.stock,
+            realEstate: financialData.realEstate,
+            debt: financialData.debt,
+          },
+        },
+      });
+      await financialDataEntry.save();
     }
 
     res.status(201).send("Financial data saved successfully");
   } catch (error) {
     console.error("Error saving financial data: ", error);
     res.status(500).send("Error saving financial data");
+  }
+});
+
+app.patch("/update-financial-data/:userId", async (req, res) => {
+  const { userId } = req.params;
+  const updatedData = req.body;
+
+  try {
+    const user = await User.findOne({
+      email: { $regex: new RegExp(`^${userId}$`, "i") },
+    });
+
+    if (!user) {
+      return res.status(404).send("User not found");
+    }
+
+    // Find the specific financial data entry to update
+    const financialDataEntry = await FinancialData.findOne({
+      user: user._id,
+    });
+
+    if (!financialDataEntry) {
+      return res.status(404).send("Financial data entry not found");
+    }
+
+    // Update only the specified fields
+    financialDataEntry.monthlyAssets.cashWon =
+      updatedData.cashWon ?? financialDataEntry.monthlyAssets.cashWon;
+    financialDataEntry.monthlyAssets.saving =
+      updatedData.saving ?? financialDataEntry.monthlyAssets.saving;
+    financialDataEntry.monthlyAssets.stock =
+      updatedData.stock ?? financialDataEntry.monthlyAssets.stock;
+    financialDataEntry.monthlyAssets.realEstate =
+      updatedData.realEstate ?? financialDataEntry.monthlyAssets.realEstate;
+    financialDataEntry.monthlyAssets.debt =
+      updatedData.debt ?? financialDataEntry.monthlyAssets.debt;
+
+    // Save the updated financial data entry
+    await financialDataEntry.save();
+
+    res.status(200).send("Financial data updated successfully");
+  } catch (error) {
+    console.error("Error updating financial data: ", error);
+    res.status(500).send("Error updating financial data");
   }
 });
 
