@@ -31,6 +31,7 @@ const FinancialData = mongoose.model("FinancialData", {
       stock: Number,
       realEstate: Number,
       debt: Number,
+      _id: 0, // NOTE: _id를 제외하고 값을 가져올 때 사용
     },
   },
 });
@@ -148,29 +149,19 @@ app.patch("/update-financial-data/:userId", async (req, res) => {
       return res.status(404).send("User not found");
     }
 
-    // Find the specific financial data entry to update
-    const financialDataEntry = await FinancialData.findOne({
-      user: user._id,
-    });
-
-    if (!financialDataEntry) {
-      return res.status(404).send("Financial data entry not found");
-    }
-
-    // Update only the specified fields
-    financialDataEntry.monthlyAssets.cashWon =
-      updatedData.cashWon ?? financialDataEntry.monthlyAssets.cashWon;
-    financialDataEntry.monthlyAssets.saving =
-      updatedData.saving ?? financialDataEntry.monthlyAssets.saving;
-    financialDataEntry.monthlyAssets.stock =
-      updatedData.stock ?? financialDataEntry.monthlyAssets.stock;
-    financialDataEntry.monthlyAssets.realEstate =
-      updatedData.realEstate ?? financialDataEntry.monthlyAssets.realEstate;
-    financialDataEntry.monthlyAssets.debt =
-      updatedData.debt ?? financialDataEntry.monthlyAssets.debt;
-
-    // Save the updated financial data entry
-    await financialDataEntry.save();
+    FinancialData.updateOne(
+      {
+        user: user._id,
+      },
+      {
+        $set: {
+          lastUpdate: updatedData.lastUpdate,
+          monthlyAssets: updatedData.monthlyAssets,
+        },
+      }
+    )
+      .then((val) => console.log("====update: ", val)) // NOTE: then을 써줘야지만 업데이트가 정상적으로 된다?
+      .catch((err) => console.error(err));
 
     res.status(200).send("Financial data updated successfully");
   } catch (error) {
