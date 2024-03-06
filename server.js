@@ -97,11 +97,11 @@ app.post("/signin", async (req, res) => {
  */
 // ...
 app.post("/save-financial-data", async (req, res) => {
-  const { userId, lastUpdate, monthlyAssets } = req.body;
+  const { email, lastUpdate, monthlyAssets } = req.body;
 
   try {
     const user = await User.findOne({
-      email: { $regex: new RegExp(`^${userId}$`, "i") },
+      email: { $regex: new RegExp(`^${email}$`, "i") },
     });
 
     if (!user) {
@@ -136,13 +136,13 @@ app.post("/save-financial-data", async (req, res) => {
   }
 });
 
-app.patch("/update-financial-data/:userId", async (req, res) => {
-  const { userId } = req.params;
+app.patch("/update-financial-data/:email", async (req, res) => {
+  const { email } = req.params;
   const updatedData = req.body;
 
   try {
     const user = await User.findOne({
-      email: { $regex: new RegExp(`^${userId}$`, "i") },
+      email: { $regex: new RegExp(`^${email}$`, "i") },
     });
 
     if (!user) {
